@@ -1,0 +1,10 @@
+*.db
+*.db-journal
+.vs/
+*.obj
+*.exe
+*.pdb
+*.tlog
+x64/
+Release/
+Debug/
