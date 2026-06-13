@@ -222,7 +222,65 @@ void deleteTask() {
 }
 
 void editTask() {
-    std::cout << YELLOW << "[ЗАГЛУШКА] Тут буде зміна тексту/опису (UPDATE tasks SET title=...).\n" << RESET;
+    int id;
+    std::cout << YELLOW << "Введіть ID завдання для РЕДАГУВАННЯ: " << RESET;
+    if (!(std::cin >> id)) {
+        std::cin.clear();
+        std::cin.ignore(10000, '\n');
+        std::cout << RED << "Некоректний формат ID.\n" << RESET;
+        return;
+    }
+
+    const char* checkSQL = "SELECT id FROM tasks WHERE id = ?;";
+    sqlite3_stmt* checkStmt;
+    bool exists = false;
+
+    if (sqlite3_prepare_v2(db, checkSQL, -1, &checkStmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_int(checkStmt, 1, id);
+        if (sqlite3_step(checkStmt) == SQLITE_ROW) {
+            exists = true;
+        }
+    }
+    sqlite3_finalize(checkStmt);
+
+    if (!exists) {
+        std::cout << RED << "Завдання з ID #" << id << " не знайдено.\n" << RESET;
+        return;
+    }
+
+    std::cin.ignore(10000, '\n');
+
+    std::string newTitle, newDescription;
+
+    std::cout << YELLOW << "Введіть нову назву завдання: " << RESET;
+    std::getline(std::cin, newTitle);
+
+    std::cout << YELLOW << "Введіть новий опис (або натисніть Enter, щоб залишити порожнім): " << RESET;
+    std::getline(std::cin, newDescription);
+
+    const char* updateSQL = "UPDATE tasks SET title = ?, description = ? WHERE id = ?;";
+    sqlite3_stmt* stmt;
+
+    if (sqlite3_prepare_v2(db, updateSQL, -1, &stmt, nullptr) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, newTitle.c_str(), -1, SQLITE_TRANSIENT);
+
+        if (newDescription.empty()) {
+            sqlite3_bind_null(stmt, 2);
+        }
+        else {
+            sqlite3_bind_text(stmt, 2, newDescription.c_str(), -1, SQLITE_TRANSIENT);
+        }
+
+        sqlite3_bind_int(stmt, 3, id);
+
+        if (sqlite3_step(stmt) == SQLITE_DONE) {
+            std::cout << GREEN << "Завдання успішно відредаговано!\n" << RESET;
+        }
+        else {
+            std::cout << RED << "Помилка збереження змін у БД.\n" << RESET;
+        }
+    }
+    sqlite3_finalize(stmt);
 }
 
 void printMenu() {
